@@ -1,0 +1,71 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+
+## Loading and preprocessing the data
+```{r echo=TRUE}
+library(ggplot2)
+library(tidyverse)
+activity <- read.csv("activity.csv")
+```
+
+## What is mean total number of steps taken per day?
+```{r echo=TRUE}
+png("mean.png")
+hist(activity$steps, col = "blue")
+abline(v = mean(activity$steps, na.rm = TRUE), lwd = 2, col = "red")
+abline(v = median(activity$steps, na.rm = TRUE), lwd = 2, col = "green")
+dev.off()
+meanACT <- mean(activity$steps, na.rm = TRUE)
+medACT <- median(activity$steps, na.rm = TRUE)
+```
+The mean and median values of total number of steps taken per day are **`r meanACT`** and **`r medACT`** respectively.
+
+## What is the average daily activity pattern?
+```{r echo=TRUE}
+activity$date <- as.Date(activity$date)
+reqdf <- activity %>% group_by(interval) %>% summarise(steps = mean(steps, na.rm = TRUE))
+max <- which.max(reqdf$steps)
+max_value <- as.numeric(reqdf[max,1])
+png("average.png")
+theme_set(theme_light())
+g <- ggplot(data = reqdf, aes(interval, steps))
+g + geom_line(color = "red", size = 1) + geom_vline(xintercept = max_value, size = 0.8, color = "blue") + geom_text(aes(x = max_value, label = max_value), y = 0.1, angle = 90, vjust = -0.2)
+dev.off()
+```
+The **835** second interval contains the maximum number of steps.
+
+## Imputing missing values
+```{r echo=TRUE}
+NArows <- which(is.na(activity))
+NAdf <- cbind(activity, mean = as.numeric(reqdf$steps))
+for (i in NArows) {
+  NAdf[i, 1] <- NAdf[i, 4]
+}
+NEWdf <- NAdf[, 1:3]
+png("plot3.png")
+hist(NEWdf$steps, col = "blue")
+abline(v = mean(NEWdf$steps), lwd = 2, col = "red")
+meanNEW <- mean(NEWdf$steps)
+abline(v = median(NEWdf$steps,), lwd = 2, col = "green")
+medNEW <- median(NEWdf$steps)
+dev.off()
+```
+The total number of missing values are **2304**. The mean and median values are equal to the initial values.
+
+## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+week <- weekdays(activity$date)
+week <- as.factor(week)
+levels(week) <- c("weekday", "weekday","weekend", "weekend","weekday","weekday","weekday")
+finaldf <- cbind(NEWdf, week)
+png("plot4.png")
+gg <- ggplot(data = finaldf, aes(interval, steps)) 
+gg + geom_line() + facet_grid(levels(week)~.)
+dev.off() 
+```
+The shape of the plot seems to be retained in both cases.
